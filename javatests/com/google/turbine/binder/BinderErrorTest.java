@@ -257,7 +257,86 @@ public class BinderErrorTest {
           "  @Object int x;",
           "   ^",
         },
-      }
+      },
+      {
+        {
+          "public class Test {", //
+          "  @Deprecated @Deprecated int x;",
+          "}",
+        },
+        {
+          "<>:2: error: java/lang/Deprecated is not @Repeatable", //
+          "  @Deprecated @Deprecated int x;",
+          "   ^",
+        },
+      },
+      {
+        {
+          "public class Test {", //
+          "  @NoSuch.NoSuch int x;",
+          "}",
+        },
+        {
+          "<>:2: error: symbol not found NoSuch.NoSuch", //
+          "  @NoSuch.NoSuch int x;",
+          "   ^",
+        },
+      },
+      {
+        {
+          "public class Test {", //
+          "  @Deprecated.NoSuch int x;",
+          "}",
+        },
+        {
+          "<>:2: error: symbol not found NoSuch", //
+          "  @Deprecated.NoSuch int x;",
+          "   ^",
+        },
+      },
+      {
+        {
+          "public class Test {", //
+          "  @interface Anno {",
+          "    int[] value() default 0;",
+          "  }",
+          "  @Anno(value=Test.NO_SUCH) int x;",
+          "}",
+        },
+        {
+          "<>:5: error: could not evaluate constant expression", //
+          "  @Anno(value=Test.NO_SUCH) int x;",
+          "              ^",
+        },
+      },
+      {
+        {
+          "public class Test {", //
+          "  @interface Anno {",
+          "    String value() default \"\";",
+          "  }",
+          "  @Anno(value=null) int x;",
+          "}",
+        },
+        {
+          "<>:5: error: invalid annotation argument", //
+          "  @Anno(value=null) int x;",
+          "              ^",
+        },
+      },
+      {
+        {
+          "public class Test {", //
+          "  static final String x = 1;",
+          "  static final String x = 2;",
+          "}",
+        },
+        {
+          "<>:3: error: duplicate declaration of field: x", //
+          "  static final String x = 2;",
+          "                      ^",
+        },
+      },
     };
     return Arrays.asList((Object[][]) testCases);
   }

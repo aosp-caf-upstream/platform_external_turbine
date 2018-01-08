@@ -16,6 +16,7 @@
 
 package com.google.turbine.binder;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.turbine.binder.bound.HeaderBoundClass;
@@ -51,8 +52,10 @@ import com.google.turbine.type.AnnoInfo;
 import com.google.turbine.type.Type;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /** Type binding. */
 public class TypeBinder {
@@ -515,10 +518,15 @@ public class TypeBinder {
   }
 
   private ImmutableList<FieldInfo> bindFields(CompoundScope scope, ImmutableList<Tree> members) {
+    Set<FieldSymbol> seen = new HashSet<>();
     ImmutableList.Builder<FieldInfo> fields = ImmutableList.builder();
     for (Tree member : members) {
       if (member.kind() == Tree.Kind.VAR_DECL) {
-        fields.add(bindField(scope, (Tree.VarDecl) member));
+        FieldInfo field = bindField(scope, (Tree.VarDecl) member);
+        if (!seen.add(field.sym())) {
+          throw error(member.position(), ErrorKind.DUPLICATE_DECLARATION, "field: " + field.name());
+        }
+        fields.add(field);
       }
     }
     return fields.build();
@@ -549,16 +557,19 @@ public class TypeBinder {
     for (Tree.Anno tree : trees) {
       LookupResult lookupResult = scope.lookup(new LookupKey(tree.name()));
       if (lookupResult == null) {
-        throw error(tree.position(), ErrorKind.SYMBOL_NOT_FOUND, tree.name());
+        throw error(tree.position(), ErrorKind.SYMBOL_NOT_FOUND, Joiner.on('.').join(tree.name()));
       }
       ClassSymbol sym = (ClassSymbol) lookupResult.sym();
       for (String name : lookupResult.remaining()) {
         sym = Resolve.resolve(env, owner, sym, name);
+        if (sym == null) {
+          throw error(tree.position(), ErrorKind.SYMBOL_NOT_FOUND, name);
+        }
       }
       if (env.get(sym).kind() != TurbineTyKind.ANNOTATION) {
         throw error(tree.position(), ErrorKind.NOT_AN_ANNOTATION, sym);
       }
-      result.add(new AnnoInfo(sym, tree.args(), null));
+      result.add(new AnnoInfo(base.source(), sym, tree, null));
     }
     return result.build();
   }
